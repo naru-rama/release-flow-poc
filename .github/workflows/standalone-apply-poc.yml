@@ -16,4 +16,4 @@ jobs:
     runs-on: ubuntu-latest
     environment: poc-a
     steps:
-      - run: sleep 30
+      - run: sleep 5

@@ -1,0 +1,24 @@
+# 同時実行の制御を、承認の後の部分（再利用ワークフローを呼ぶジョブ）だけに置いたもの
+name: approval-poc-reusable
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sleep 45
+
+  deploy:
+    needs: verify
+    concurrency:
+      group: poc-prod-write
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/apply-and-reflect-poc.yml

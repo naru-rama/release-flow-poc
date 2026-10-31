@@ -1,0 +1,37 @@
+# approval-poc-reusable.yml から呼ぶ。ロール定義の適用（a）と反映（b）
+name: apply-and-reflect-poc
+
+on:
+  workflow_call:
+
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    environment: poc-a
+    steps:
+      - run: sleep 15
+
+  b:
+    runs-on: ubuntu-latest
+    environment: poc-b
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for job a
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 120))
+          while :; do
+            a=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
+              --jq '[.jobs[] | select(.name | endswith(" / a"))][0] | "\(.status) \(.conclusion)"')
+            echo "job a: $a"
+            case "$a" in
+              "completed success") break ;;
+              completed*) echo "job a did not succeed"; exit 1 ;;
+            esac
+            if [ "$SECONDS" -ge "$deadline" ]; then echo "timed out waiting for job a"; exit 1; fi
+            sleep 5
+          done
+      - run: echo "反映の代わり"
