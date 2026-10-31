@@ -1,0 +1,21 @@
+# ブランチに置いたワークフローから、GITHUB_TOKEN で release/* を作れないことの確認用
+name: token-create-poc
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        default: v7.7
+
+permissions:
+  contents: write
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          VERSION: ${{ inputs.version }}
+        run: git push origin "HEAD:refs/heads/release/$VERSION"

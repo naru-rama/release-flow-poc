@@ -1,0 +1,19 @@
+# ゲートを待てないロール定義の適用や、監視の本番へのapplyに当たる
+name: standalone-apply-poc
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: poc-prod-write
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: poc-a
+    steps:
+      - run: sleep 30

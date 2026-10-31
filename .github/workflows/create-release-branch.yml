@@ -1,0 +1,47 @@
+# リリースブランチの作成用ワークフローに当たる。deploy keyで release/* を作る
+# update・delete は、同じ鍵で既存のリリースブランチを変えられないことの確認用
+name: create-release-branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 版（例 v1.0）
+        required: true
+      mode:
+        type: choice
+        options: [create, update, delete]
+        default: create
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    environment: release-create
+    steps:
+      - name: Check version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+$ ]] || { echo "invalid version: $VERSION"; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
+      - name: Push
+        env:
+          VERSION: ${{ inputs.version }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          branch="release/$VERSION"
+          case "$MODE" in
+            create)
+              git push origin "HEAD:refs/heads/$branch" ;;
+            update)
+              git -c user.name=poc -c user.email=poc@example.invalid commit --allow-empty -m "poc: update by deploy key"
+              git push origin "HEAD:refs/heads/$branch" ;;
+            delete)
+              git push origin --delete "$branch" ;;
+          esac

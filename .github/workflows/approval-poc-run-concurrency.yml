@@ -1,0 +1,51 @@
+# approval-poc.yml と同じ構成で、concurrency を実行（ワークフロー）単位に置いたもの
+name: approval-poc-run-concurrency
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: poc-prod-write
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "ゲートの検証の代わり"
+
+  a:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: poc-a
+    steps:
+      - run: sleep 60
+
+  b:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: poc-b
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for job a
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 600))
+          while :; do
+            a=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
+              --jq '[.jobs[] | select(.name == "a")][0] | "\(.status) \(.conclusion)"')
+            echo "job a: $a"
+            case "$a" in
+              "completed success") break ;;
+              completed*) echo "job a did not succeed"; exit 1 ;;
+            esac
+            if [ "$SECONDS" -ge "$deadline" ]; then echo "timed out waiting for job a"; exit 1; fi
+            sleep 10
+          done
+      - run: echo "反映の代わり"

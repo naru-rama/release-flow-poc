@@ -1,0 +1,17 @@
+# deploy keyで作ったブランチで、pushのイベントが起きるかの確認用（検証環境への自動デプロイに当たる）
+name: release-push
+
+on:
+  push:
+    branches: ['release/**']
+
+permissions:
+  contents: read
+
+jobs:
+  show:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          CREATED: ${{ github.event.created }}
+        run: echo "push to $GITHUB_REF by $GITHUB_ACTOR created=$CREATED"
