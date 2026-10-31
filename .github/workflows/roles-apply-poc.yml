@@ -1,0 +1,22 @@
+# main の定義で動く、ロール定義の適用に当たる
+name: roles-apply-poc
+
+on:
+  workflow_call:
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: poc-a
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Show OIDC claims
+        run: |
+          set -euo pipefail
+          token=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=poc" | jq -r .value)
+          p=$(echo "$token" | cut -d. -f2 | tr '_-' '/+')
+          while [ $(( ${#p} % 4 )) -ne 0 ]; do p="$p="; done
+          echo "$p" | base64 -d | jq '{sub, ref, environment, job_workflow_ref, workflow_ref}'
+      - run: sleep 10

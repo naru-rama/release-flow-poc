@@ -1,0 +1,25 @@
+# リリースブランチから起動するゲートに当たる。承認の後の部分を入れ子の再利用ワークフローで呼ぶ
+name: approval-poc-nested
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sleep 5
+
+  deploy:
+    needs: verify
+    concurrency:
+      group: poc-prod-write
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: ./.github/workflows/apply-and-reflect-nested.yml
